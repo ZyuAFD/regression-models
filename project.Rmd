@@ -1,0 +1,114 @@
+Regression Models Project
+=========================
+
+## Executive summary
+
+Fuel economy is of growing importance as the price of gasoline increases, as well as our knowledge of the impact of burning fossil fuels. One aspect of cars that could have a significant impact on fuel economoy is the type of transmission - automatic or manual. This brief report will analyze the impact of transmission type on fuel economy from a sample of 32 cars in a 1974 Motor Trends magazine.
+
+I find that ***
+
+
+## Data transformations
+
+The `am` column represents the type of transmission, where `0` means automatic and `1` means manual. This would be better to have as a factor variable.
+```{r}
+mtcars$am <- factor(mtcars$am, levels=c(0, 1), labels=c('Automatic', 'Manual'))
+```
+```
+
+
+## Exploratory data analysis
+
+First we can simply compare the mean MPG for automatic and manual transmissions:
+```{r}
+tapply(mtcars$mpg, mtcars$am, mean)
+```
+
+On first glance, then, it appears that cars with a manual transmission are more fuel efficient. However, that may not be the cause; it is possible that the cars with a manual transmission happen to share some other characteristics.
+
+In the appendix, there are paired scatterplots for all of the variables in the dataset. It appears that the weight (`wt`) and rear axle ratio (`drat`) are correlated with the MPG. Looking at those plots in more detail, In both plots, the red dots represent manual transmissions, and the black dots represent automatic transmissions. For both, the explanatory variables are certainly related for the groupings, but there is some overlap. 
+
+Thus I will consider the impact of weight and rear axle ratio when looking at the effect of transmission type on fuel economy.
+
+
+## Models
+
+I will consider three models:
+
+- Model 1: Tranmission type and weight $$MPG_i = \beta_0 + \beta_1 \cdot Transmission_i + \beta_2 \cdot Weight_i + \epsilon_i$$
+- Model 2: Tranmission type and rear axle ratio $$MPG_i = \beta_0 + \beta_1 \cdot Transmission_i + \beta_2 \cdot RearAxleRatio_i +  \epsilon_i$$
+- Model 3: Transmission type, weight, and rear axle ratio $$MPG_i = \beta_0 + \beta_1 \cdot Transmission_i + \beta_2 \cdot Weight_i + \beta_3 \cdot RearAxleRatio_i +  \epsilon_i$$
+
+The code
+```{r}
+model1 <- lm(mpg ~ am + wt, mtcars)
+model2 <- lm(mpg ~ am + drat, mtcars)
+model3 <- lm(mpg ~ am + wt + drat, mtcars)
+model4 <- lm(mpg ~ am + wt + am*wt + drat + am*drat, mtcars)
+```
+
+
+## Model selection
+
+To select a model, I will look at the:
+- $r^2$ values to measure percent of variation explained, and
+- dfbetas to consider the impact of each sample on the coefficients, and
+- hat values to consider the influence of samples, and
+- residual plots to analyze the appropriateness of fit.
+
+#### dfbetas
+```{r}
+dfbetas(model1)
+dfbeta(model2)
+dfbetas(model3)
+dfbeta(model4)
+```
+Measuring how much the coefficients would change without the sample
+- Model 1
+    - Chrysler imperial
+- Model 2
+    - Lotus Europa
+    - Maserati Bora
+- Model 3
+    - Chrylster Imperial
+
+```{r}
+hatvalues(model1)
+hatvalues(model2)
+hatvalues(model3)
+hatvalues(model4)
+```
+Measuring the influence of points.
+- Model 1
+    - Chrysler Imperial
+- Model 2
+    - none
+- Model 3
+    - none
+
+### Residuals
+```{r}
+par(mfrow=c(2,2))
+plot(model1)
+plot(model2)
+plot(model3)
+```
+
+## Conclusion
+
+
+## Appendix 1: Figures
+
+#### Figure 1
+```{r}
+pairs(mtcars)
+```
+
+#### Figure 2
+```{r}
+par(mfrow=c(1,2))
+with(mtcars, plot(wt, mpg, pch=19, col=am, xlab='Weight (1000s pounds)',
+                  ylab='MPG'))
+with(mtcars, plot(drat, mpg, pch=19, col=am, xlab='Rear axle ratio',
+                  ylab='MPG'))
+```
