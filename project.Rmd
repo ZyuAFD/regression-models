@@ -1,27 +1,23 @@
-Regression Models Project
-=========================
-
-Author: Kevin Krenz
-Date: November 22, 2014
+---
+title: "Regression project"
+author: "Kevin Krenz"
+date: "November 23, 2014"
+output: pdf_document
+---
 
 ## Executive summary
 
-Fuel economy is of growing importance as the price of gasoline increases, as well as our knowledge of the impact of burning fossil fuels. One aspect of cars that could have a significant impact on fuel economoy is the type of transmission - automatic or manual. This brief report will analyze the impact of transmission type on fuel economy from a sample of 32 cars in a 1974 Motor Trends magazine.
+This brief report summarizes my findings on the impact of transmission type on fuel economy. Using a sample of 32 cars from a 1974 Motor Trends magazine, I find that there is not enough evidence to suggest that the type of transmission has a significant impact on fuel economy. While the mean number of miles per gallon is quite different between the manual and automatic transmission cars, this apparent difference seems to vanish after accoutning for other factors.
 
-I find that ***
+## The data
 
 ```{r load, echo=FALSE}
 
 ## Load the data, make transmission type a factor
 data(mtcars)
 mtcars$am <- factor(mtcars$am, levels=c(0, 1), labels=c('Automatic', 'Manual'))
-```
+mtcars$vs <- factor(mtcars$vs, levels=c(0, 1), labels=c('V', 'S'))
 
-
-
-## The data
-
-```{r means, echo=FALSE}
 means <- round(tapply(mtcars$mpg, mtcars$am, mean), 2)
 sds <- round(tapply(mtcars$mpg, mtcars$am, sd), 2)
 
@@ -30,44 +26,76 @@ n.auto <- sum(mtcars$am == 'Automatic')
 n.man <- sum(mtcars$am == 'Manual')
 ```
 
-Our dataset contains data on `r n` different cars. The variables include milers per gallon, number of cylinders, displacement, gross horsepower, rear axle ratio, weight (lb/1000), quarter mile time, V/S, transmission type, number of forward gears, and the number of carburetors. 
+Our dataset contains data on `r n[1]` different cars. The variables include miles per gallon, number of cylinders, displacement, gross horsepower, rear axle ratio, weight (lb/1000), quarter mile time, engine type, transmission type, number of forward gears, and the number of carburetors. 
 
 Highlighting our variables of interest, there are `r n.auto` cars with automatic transmissions. They have a mean MPG of `r means[1]` with a standard deviation of `r sds[1]`. There are `r n.man` cars with manual transmissions. They have a mean MPG of `r means[2]` with a standard deviation of `r sds[2]`.
 
-On first glance, then, it appears that cars with a manual transmission are more fuel efficient. However, that may not be the cause; it is possible that the cars with a manual transmission happen to share some other characteristics.
+On first glance, then, it appears that cars with a manual transmission are more fuel efficient. However, that may not be the cause; it is possible that the cars with a manual transmission happen to share some other characteristics. 
+
+Indeed, many of the possible covariates are highly correlated with each other; see figure 1 in the appendix for pairwise scatter plots. Further, many indicate a significant correlation with the type of transmission. There does not appear to be any cars that would be considered outliers in any of the plots.
 
 ## Models
 
+The highly correlated covariates make it difficult to identify an accurate model. Figure 2 contains the results of a regression model that includes all covariates in the set. Many of the covariates appear to have small effects other than weight and transmission type. Further, including all of the covariates inflates the variance greatly, so simplifying the model makes sense. 
 
+The two covariates that appear to have the largest impact on fuel economy are the type of transmission and the weight of the car. Common sense reasoning backs up these being important factors to consider, so I'll use these variables as the base model. 
+
+The results of regression of fuel economy on weight and transmission type are in figure 2. Weight, as expected, has a signficant, negative impact. However, more interestingly, this model does not provide evidence that the transmission type has a meaningful effect on fuel economy.
+
+Two further models that expand the previous model are included - one that includes engine type, and one that includes engine type and the number of cylinders. Both models support the notion that there is not enough evidence to claim that transmission type has a significant effect on fuel economy.
+
+It seems that, accounting for other factors that could influence the number of miles per gallon a car gets, that transmission type does not have much of an impact.
+
+---
+
+# Appendix
+
+### Figure 1: Pairwise Scatterplots
+
+The red dots represent maual transmissions, and the black dots represent automatic transmissions.
+
+```{r pairs, echo=FALSE, fig.width=8, fig.height=8}
+pairs(mtcars, panel=panel.smooth, main='Cars data', 
+      col=mtcars$am, pch=19)
+```
+
+### Figure 2: Model 1 - All Covariates
+
+```{r basic, echo=FALSE}
+library(car)
+model.1 <- lm(mpg ~ ., mtcars)
+summary(model.1)$coef
+vif(model.1)
+shapiro.test(model.1$residuals)
+```
+
+### Figure 3: Model 2 - Weight and Transmission Type
 
 ```{r echo=FALSE}
-model1 <- lm(mpg ~ am + wt, mtcars)
-model2 <- lm(mpg ~ am + wt + drat, mtcars)
-model3 <- lm(mpg ~ am + wt + drat, mtcars)
-model4 <- lm(mpg ~ am + wt + drat + am*drat, mtcars)
+model.2 <- lm(mpg ~ am + wt, mtcars)
+summary(model.2)
+plot(model.2, which=1)
+vif(model.2)
+shapiro.test(model.2$residuals)
 ```
 
 
-## Model selection
-
-To select a model, I will look at the:
-
-- $r^2$ values to measure percent of variation explained, and
-- dfbetas to consider the impact of each sample on the coefficients, and
-- hat values to consider the influence of samples, and
-- residual plots to analyze the appropriateness of fit.
-
-
-## Conclusion
-
-
-## Appendix 1: Figures
-
-#### Figure 1
-```{r}
-par(mfrow=c(1,2))
-with(mtcars, plot(wt, mpg, pch=19, col=am, xlab='Weight (1000s pounds)',
-                  ylab='MPG'))
-with(mtcars, plot(drat, mpg, pch=19, col=am, xlab='Rear axle ratio',
-                  ylab='MPG'))
+### Figure 5: Model 3 - Weight, Transmission, and Engine
+```{r echo=FALSE}
+model.3 <- lm(mpg ~ am + wt + vs, mtcars)
+summary(model.3)
+plot(model.3, which=1)
+vif(model.3)
+shapiro.test(model.3$residuals)
 ```
+
+### Figure 6: Model 4 - Weight, Transmission, Engine, and Cylinders
+```{r echo=FALSE}
+model.4 <- lm(mpg ~ am + wt + vs + cyl, mtcars)
+summary(model.4)
+plot(model.4, which=1)
+vif(model.4)
+shapiro.test(model.4$residuals)
+```
+
+
